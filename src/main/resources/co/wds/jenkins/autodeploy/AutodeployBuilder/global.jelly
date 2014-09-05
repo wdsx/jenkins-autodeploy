@@ -1,0 +1,10 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <f:section title="Autodeploy Builder">
+  	<f:entry title="S3 Access Key" field="s3AccessKey" description="The access key for the Amazon S3 service">
+  		<f:textbox/>
+  	</f:entry>
+  	<f:entry title="S3 Secret Key" field="s3SecretKey" description="The secret key for the Amazon S3 service">
+  		<f:textbox/>
+  	</f:entry>
+  </f:section>
+</j:jelly>

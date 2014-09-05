@@ -21,7 +21,7 @@ import java.io.IOException;
  * <p>
  * When the user configures the project and enables this builder,
  * {@link DescriptorImpl#newInstance(StaplerRequest)} is invoked
- * and a new {@link HelloWorldBuilder} is created. The created
+ * and a new {@link AutodeployBuilder} is created. The created
  * instance is persisted to the project configuration XML by using
  * XStream, so this allows you to use instance fields (like {@link #name})
  * to remember the configuration.
@@ -32,33 +32,33 @@ import java.io.IOException;
  *
  * @author Kohsuke Kawaguchi
  */
-public class HelloWorldBuilder extends Builder {
+public class AutodeployBuilder extends Builder {
+	private String projectName;
+	private String s3Location;
+	private String artifactName;
+	private String version;
+	private String appType;
 
-    private final String name;
-
-    // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public HelloWorldBuilder(String name) {
-        this.name = name;
-    }
-
-    /**
-     * We'll use this from the <tt>config.jelly</tt>.
-     */
-    public String getName() {
-        return name;
+    public AutodeployBuilder(String projectName, String s3Location, String artifactName, String version, String appType) {
+		this.projectName = projectName;
+		this.s3Location = s3Location;
+		this.artifactName = artifactName;
+		this.version = version;
+		this.appType = appType;
     }
 
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
-        // This is where you 'build' the project.
-        // Since this is a dummy, we just say 'hello world' and call that a build.
+    	listener.getLogger().println(String.format("S3 Access Key   : '%s'", getDescriptor().getS3AccessKey()));
+    	listener.getLogger().println(String.format("S3 Secret Key   : '%s'", getDescriptor().getS3SecretKey()));
 
-        // This also shows how you can consult the global configuration of the builder
-        if (getDescriptor().getUseFrench())
-            listener.getLogger().println("Bonjour, "+name+"!");
-        else
-            listener.getLogger().println("Hello, "+name+"!");
+    	listener.getLogger().println(String.format("projectName     : '%s'", getProjectName()));
+    	listener.getLogger().println(String.format("s3Location      : '%s'", getS3Location()));
+    	listener.getLogger().println(String.format("artifactName    : '%s'", getArtifactName()));
+    	listener.getLogger().println(String.format("version         : '%s'", getVersion()));
+    	listener.getLogger().println(String.format("applicationType : '%s'", getAppType()));
+
         return true;
     }
 
@@ -70,8 +70,28 @@ public class HelloWorldBuilder extends Builder {
         return (DescriptorImpl)super.getDescriptor();
     }
 
+    public String getProjectName() {
+		return projectName;
+	}
+
+	public String getS3Location() {
+		return s3Location;
+	}
+
+	public String getArtifactName() {
+		return artifactName;
+	}
+
+	public String getVersion() {
+		return version;
+	}
+
+	public String getAppType() {
+		return appType;
+	}
+
     /**
-     * Descriptor for {@link HelloWorldBuilder}. Used as a singleton.
+     * Descriptor for {@link AutodeployBuilder}. Used as a singleton.
      * The class is marked as public so that it can be accessed from views.
      *
      * <p>
@@ -80,16 +100,19 @@ public class HelloWorldBuilder extends Builder {
      */
     @Extension // This indicates to Jenkins that this is an implementation of an extension point.
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-        /**
-         * To persist global configuration information,
-         * simply store it in a field and call save().
-         *
-         * <p>
-         * If you don't want fields to be persisted, use <tt>transient</tt>.
-         */
-        private boolean useFrench;
 
-        /**
+    	private String s3AccessKey;
+    	private String s3SecretKey;
+
+    	public String getS3AccessKey() {
+			return s3AccessKey;
+		}
+
+		public String getS3SecretKey() {
+			return s3SecretKey;
+		}
+
+		/**
          * In order to load the persisted global configuration, you have to 
          * call load() in the constructor.
          */
@@ -109,17 +132,15 @@ public class HelloWorldBuilder extends Builder {
          *      prevent the form from being saved. It just means that a message
          *      will be displayed to the user. 
          */
-        public FormValidation doCheckName(@QueryParameter String value)
+        public FormValidation doCheckProjectName(@QueryParameter String value)
                 throws IOException, ServletException {
-            if (value.length() == 0)
-                return FormValidation.error("Please set a name");
-            if (value.length() < 4)
-                return FormValidation.warning("Isn't the name too short?");
+            if (value == null || value.length() == 0) {
+                return FormValidation.error("Please set a project name");
+            }
             return FormValidation.ok();
         }
 
         public boolean isApplicable(Class<? extends AbstractProject> aClass) {
-            // Indicates that this builder can be used with all kinds of project types 
             return true;
         }
 
@@ -127,28 +148,15 @@ public class HelloWorldBuilder extends Builder {
          * This human readable name is used in the configuration screen.
          */
         public String getDisplayName() {
-            return "Say hello world";
+            return "Generate Autodeploy configuration";
         }
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject formData) throws FormException {
-            // To persist global configuration information,
-            // set that to properties and call save().
-            useFrench = formData.getBoolean("useFrench");
-            // ^Can also use req.bindJSON(this, formData);
-            //  (easier when there are many fields; need set* methods for this, like setUseFrench)
+        	this.s3AccessKey = formData.getString("s3AccessKey");
+        	this.s3SecretKey = formData.getString("s3SecretKey");
             save();
             return super.configure(req,formData);
-        }
-
-        /**
-         * This method returns true if the global configuration says we should speak French.
-         *
-         * The method name is bit awkward because global.jelly calls this method to determine
-         * the initial state of the checkbox by the naming convention.
-         */
-        public boolean getUseFrench() {
-            return useFrench;
         }
     }
 }
