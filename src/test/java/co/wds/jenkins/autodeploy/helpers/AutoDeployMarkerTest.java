@@ -5,7 +5,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -17,6 +16,7 @@ import org.mockito.Mock;
 import co.wds.testingtools.annotations.RandomAnnotation.Randomise;
 
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.transfer.TransferManager;
 
 public class AutoDeployMarkerTest {
@@ -24,7 +24,7 @@ public class AutoDeployMarkerTest {
 	
 	@Randomise public String secretKey;
 	@Randomise public String accessKey;
-	@Mock TransferManager tm;
+	@Mock TransferManager mockTransferManager;
 	
 	@Before
 	public void setup() throws Exception {
@@ -32,7 +32,7 @@ public class AutoDeployMarkerTest {
 		initMocks(this);
 		
 		unit = spy(new AutoDeployMarker(accessKey, secretKey));
-		when(unit.createTransferManager(any(AWSCredentials.class))).thenReturn(tm);
+		when(unit.createTransferManager()).thenReturn(mockTransferManager);
 	}
 	
 	@Test
@@ -42,5 +42,14 @@ public class AutoDeployMarkerTest {
 		assertThat(credentials, is(not(nullValue())));
 		assertThat(credentials.getAWSAccessKeyId(), is(accessKey));
 		assertThat(credentials.getAWSSecretKey(), is(secretKey));
+	}
+	
+	@Test
+	public void shouldCreateAGetTransferRequest() throws Exception {
+		GetObjectRequest request = unit.getAwsGetRequest();
+		
+		assertThat(request, is(not(nullValue())));
+		assertThat(request.getBucketName(), is("autodeploy"));
+		assertThat(request.getKey(), is("deploy.csv"));
 	}
 }
