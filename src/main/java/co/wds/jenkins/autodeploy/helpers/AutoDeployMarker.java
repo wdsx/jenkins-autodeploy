@@ -63,6 +63,6 @@ public class AutoDeployMarker {
 	}
 
 	private String generateNewData(String projectName, String s3Location, String artifactName, String version, String appType, String originalData) {
-		return String.format(LINE_FORMAT, projectName, s3Location, artifactName, version, appType);
+		return originalData + "\n" + String.format(LINE_FORMAT, projectName, s3Location, artifactName, version, appType);
 	}
 }

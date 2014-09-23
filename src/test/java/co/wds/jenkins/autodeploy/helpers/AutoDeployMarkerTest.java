@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -14,6 +15,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.io.FileUtils;
@@ -86,7 +88,29 @@ public class AutoDeployMarkerTest {
 	
 	@Test
 	public void shouldDownloadAndUpdateEmptyExistingFile() throws Exception {
-		InputStream inputStream = IOUtils.toInputStream("");
+		String contents = checkChangeOriginalDocumentContents("");
+		assertThat(contents.trim(), is(expectedLine));
+	}
+	
+	@Test
+	public void shouldDownloadAndUpdateExistingFileWithNewData() throws Exception {
+		String line1 = "virtual-agent,virtual-agent,virtual-agent-v102.tgz,v102,play2";
+		String line2 = "mind-meld,mind-meld,mind-meld-v100.tgz,v100,play2";
+		String line3 = "switchboard,xi/xi-switchboard,xi-switchboard-v51.tgz,v51,play2";
+		String line4 = "orchestrator,xi/xi-orchestrator,xi-orchestrator-v371.tgz,v371,play2";
+		String line5 = "knowledge-frame,xi/knowledge-frame,knowledge-frame-v42.tgz,v42,play2";
+		String originalContents = line1 + "\n" + line2 + "\n" + line3 + "\n" + line4 + "\n" + line5;
+		String newContents = checkChangeOriginalDocumentContents(originalContents);
+
+		assertThat(newContents, containsString(line1));
+		assertThat(newContents, containsString(line2));
+		assertThat(newContents, containsString(line3));
+		assertThat(newContents, containsString(line4));
+		assertThat(newContents, containsString(line5));
+	}
+
+	private String checkChangeOriginalDocumentContents(String originalDocumentContents) throws IOException {
+		InputStream inputStream = IOUtils.toInputStream(originalDocumentContents);
 		S3ObjectInputStream s3InputStream = new S3ObjectInputStream(inputStream, new HttpGet());
 		when(mockS3Object.getObjectContent()).thenReturn(s3InputStream);
 		
@@ -110,6 +134,6 @@ public class AutoDeployMarkerTest {
 		
 		assertThat(contents, is(not(nullValue())));
 		assertThat(contents, containsString(expectedLine));
-		assertThat(contents.trim(), is(expectedLine));
+		return contents;
 	}
 }
