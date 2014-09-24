@@ -12,6 +12,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.QueryParameter;
 
+import co.wds.jenkins.autodeploy.helpers.AutoDeployMarker;
+
 import javax.servlet.ServletException;
 import java.io.IOException;
 
@@ -50,21 +52,18 @@ public class AutodeployBuilder extends Builder {
 
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
-    	listener.getLogger().println(String.format("S3 Access Key   : '%s'", getDescriptor().getS3AccessKey()));
-    	listener.getLogger().println(String.format("S3 Secret Key   : '%s'", getDescriptor().getS3SecretKey()));
+    	AutoDeployMarker marker = new AutoDeployMarker(getDescriptor().getS3AccessKey(), getDescriptor().getS3SecretKey());
 
-    	listener.getLogger().println(String.format("projectName     : '%s'", getProjectName()));
-    	listener.getLogger().println(String.format("s3Location      : '%s'", getS3Location()));
-    	listener.getLogger().println(String.format("artifactName    : '%s'", getArtifactName()));
-    	listener.getLogger().println(String.format("version         : '%s'", getVersion()));
-    	listener.getLogger().println(String.format("applicationType : '%s'", getAppType()));
+    	try {
+			marker.updateAutoDeployData(getProjectName(), getS3Location(), getArtifactName(), getVersion(), getAppType());
+		} catch (IOException e) {
+			e.printStackTrace(listener.getLogger());
+			return false;
+		}
 
         return true;
     }
 
-    // Overridden for better type safety.
-    // If your plugin doesn't really define any property on Descriptor,
-    // you don't have to do this.
     @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl)super.getDescriptor();

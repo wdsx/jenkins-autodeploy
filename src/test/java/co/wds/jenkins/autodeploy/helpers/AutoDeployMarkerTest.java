@@ -5,7 +5,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -37,6 +36,12 @@ import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.transfer.TransferManager;
 
 public class AutoDeployMarkerTest {
+	private static final String LINE_5 = "knowledge-frame,xi/knowledge-frame,knowledge-frame-v42.tgz,v42,play2";
+	private static final String LINE_4 = "orchestrator,xi/xi-orchestrator,xi-orchestrator-v371.tgz,v371,play2";
+	private static final String LINE_3 = "switchboard,xi/xi-switchboard,xi-switchboard-v51.tgz,v51,play2";
+	private static final String LINE_2 = "mind-meld,mind-meld,mind-meld-v100.tgz,v100,play2";
+	private static final String LINE_1 = "virtual-agent,virtual-agent,virtual-agent-v102.tgz,v102,play2";
+	
 	private AutoDeployMarker unit;
 	private static final String LINE_FORMAT = "%s,%s,%s,%s,%s";
 	
@@ -83,7 +88,7 @@ public class AutoDeployMarkerTest {
 		
 		assertThat(request, is(not(nullValue())));
 		assertThat(request.getBucketName(), is("autodeploy"));
-		assertThat(request.getKey(), is("deploy.csv"));
+		assertThat(request.getKey(), is("deploy_test.csv"));
 	}
 	
 	@Test
@@ -94,19 +99,34 @@ public class AutoDeployMarkerTest {
 	
 	@Test
 	public void shouldDownloadAndUpdateExistingFileWithNewData() throws Exception {
-		String line1 = "virtual-agent,virtual-agent,virtual-agent-v102.tgz,v102,play2";
-		String line2 = "mind-meld,mind-meld,mind-meld-v100.tgz,v100,play2";
-		String line3 = "switchboard,xi/xi-switchboard,xi-switchboard-v51.tgz,v51,play2";
-		String line4 = "orchestrator,xi/xi-orchestrator,xi-orchestrator-v371.tgz,v371,play2";
-		String line5 = "knowledge-frame,xi/knowledge-frame,knowledge-frame-v42.tgz,v42,play2";
-		String originalContents = line1 + "\n" + line2 + "\n" + line3 + "\n" + line4 + "\n" + line5;
+		String originalContents = LINE_1 + "\n" + LINE_2 + "\n" + LINE_3 + "\n" + LINE_4 + "\n" + LINE_5;
 		String newContents = checkChangeOriginalDocumentContents(originalContents);
 
-		assertThat(newContents, containsString(line1));
-		assertThat(newContents, containsString(line2));
-		assertThat(newContents, containsString(line3));
-		assertThat(newContents, containsString(line4));
-		assertThat(newContents, containsString(line5));
+		assertThat(newContents, containsString(LINE_1));
+		assertThat(newContents, containsString(LINE_2));
+		assertThat(newContents, containsString(LINE_3));
+		assertThat(newContents, containsString(LINE_4));
+		assertThat(newContents, containsString(LINE_5));
+	}
+	
+	@Test
+	public void shouldDownloadAndUpdateExistingFileWithNewDataForProjectName() throws Exception {
+		String newLine = String.format(LINE_FORMAT, projectName, "OLD_S3", "OLD_ARTIFACT", "OLD_VERSION", "OLD_APP_TYPE");
+		String originalContents = LINE_1 + "\n" + newLine;
+		String newContents = checkChangeOriginalDocumentContents(originalContents);
+		
+		assertThat(newContents, containsString(LINE_1));
+		assertThat(newContents, not(containsString(newLine)));
+	}
+	
+	@Test
+	public void shouldHaveNewLinesAfterEachLineOfData() throws Exception {
+		String newLine = String.format(LINE_FORMAT, projectName, "OLD_S3", "OLD_ARTIFACT", "OLD_VERSION", "OLD_APP_TYPE");
+		String originalContents = LINE_1 + "\n" + newLine + "\n" + LINE_2 + "\n" + LINE_3;
+		String newContents = checkChangeOriginalDocumentContents(originalContents);
+		
+		String[] newLines = newContents.split("\n");
+		assertThat(newLines.length, is(4));
 	}
 
 	private String checkChangeOriginalDocumentContents(String originalDocumentContents) throws IOException {
@@ -126,7 +146,7 @@ public class AutoDeployMarkerTest {
 		order.verify(mockS3Client).getObject(unit.getAwsGetRequest());
 		order.verify(mockS3Object).getObjectContent();
 		order.verify(mockTransferManager).getAmazonS3Client();
-		order.verify(mockS3Client).putObject(eq("autodeploy"), eq("deploy.csv"), captor.capture());
+		order.verify(mockS3Client).putObject(eq("autodeploy"), eq("deploy_test.csv"), captor.capture());
 		
 		File file = captor.getValue();
 		assertThat(file, is(not(nullValue())));

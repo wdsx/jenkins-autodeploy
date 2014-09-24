@@ -16,7 +16,7 @@ import com.amazonaws.services.s3.transfer.TransferManager;
 
 public class AutoDeployMarker {
 	private static final String S3_BUCKET = "autodeploy";
-	private static final String S3_KEY = "deploy.csv";
+	private static final String S3_KEY = "deploy_test.csv";
 	private static final String LINE_FORMAT = "%s,%s,%s,%s,%s";
 	
 	private AWSCredentials credentials;
@@ -63,6 +63,28 @@ public class AutoDeployMarker {
 	}
 
 	private String generateNewData(String projectName, String s3Location, String artifactName, String version, String appType, String originalData) {
-		return originalData + "\n" + String.format(LINE_FORMAT, projectName, s3Location, artifactName, version, appType);
+		String[] lines = originalData.split("\n");
+		String formattedLine = String.format(LINE_FORMAT, projectName, s3Location, artifactName, version, appType);
+		StringBuffer newLines = new StringBuffer();
+		
+		boolean addedLine = false;
+		for (String line : lines) {
+			if (newLines.length() > 0) {
+				newLines.append("\n");
+			}
+			if (line.startsWith(projectName)) {
+				newLines.append(formattedLine);
+				addedLine = true;
+			} else {
+				newLines.append(line);
+			}
+		}
+		
+		if (!addedLine) {
+			newLines.append(formattedLine);
+		}
+		
+		
+		return newLines.toString();
 	}
 }
